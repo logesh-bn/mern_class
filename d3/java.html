@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Catch the Ball Game</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: sans-serif;
+      font-size: 20px;
+      z-index: 10;
+    }
+    #restartBtn {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #00b894;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: none;
+      z-index: 10;
+    }
+    #restartBtn:hover {
+      background-color: #019875;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Use ← and → to move. Catch a red ball to win!</div>
+  <button id="restartBtn" onclick="restartGame()">🔁 Play Again</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.156.1/build/three.min.js"></script>
+
+  <script>
+    let scene, camera, renderer;
+    let player, balls = [];
+    let moveLeft = false, moveRight = false;
+    let gameOver = false;
+    let ballInterval;
+
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Platform
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(20, 1, 10),
+        new THREE.MeshBasicMaterial({ color: 0x222222 })
+      );
+      scene.add(platform);
+
+      // Player cube
+      player = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+      );
+      player.position.y = 1;
+      scene.add(player);
+
+      // Lights & camera
+      scene.add(new THREE.AmbientLight(0xffffff));
+      camera.position.set(0, 5, 15);
+      camera.lookAt(0, 1, 0);
+
+      // Keyboard controls
+      document.addEventListener('keydown', (e) => {
+        if (e.key === "ArrowLeft") moveLeft = true;
+        if (e.key === "ArrowRight") moveRight = true;
+      });
+      document.addEventListener('keyup', (e) => {
+        if (e.key === "ArrowLeft") moveLeft = false;
+        if (e.key === "ArrowRight") moveRight = false;
+      });
+
+      // Start creating balls
+      ballInterval = setInterval(() => {
+        if (!gameOver) createBall();
+      }, 1000);
+
+      animate();
+    }
+
+    function createBall() {
+      const ball = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      );
+      ball.position.set((Math.random() - 0.5) * 18, 10, 0);
+      scene.add(ball);
+      balls.push(ball);
+    }
+
+    function animate() {
+      if (!gameOver) requestAnimationFrame(animate);
+
+      // Move player
+      if (moveLeft && player.position.x > -9) player.position.x -= 0.2;
+      if (moveRight && player.position.x < 9) player.position.x += 0.2;
+
+      // Move balls
+      for (let i = 0; i < balls.length; i++) {
+        const ball = balls[i];
+        ball.position.y -= 0.1;
+
+        // Collision = win
+        if (
+          Math.abs(ball.position.x - player.position.x) < 0.75 &&
+          Math.abs(ball.position.y - player.position.y) < 0.75
+        ) {
+          document.getElementById("info").textContent = "🎉 You Win!";
+          document.getElementById("restartBtn").style.display = "block";
+          gameOver = true;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function restartGame() {
+      // Remove old balls
+      balls.forEach(ball => scene.remove(ball));
+      balls = [];
+
+      // Reset player position
+      player.position.x = 0;
+
+      // Reset game state
+      gameOver = false;
+      document.getElementById("info").textContent = "Use ← and → to move. Catch a red ball to win!";
+      document.getElementById("restartBtn").style.display = "none";
+
+      // Restart animation
+      animate();
+    }
+
+    init();
+  </script>
+</body>
+</html>
